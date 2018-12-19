@@ -1,0 +1,116 @@
+package drools;
+
+import models.Bank;
+import models.TransactionRequest;
+import utilities.Ontology;
+
+rule "Set Bank blacklisted"
+	salience 5
+when
+	$tr : TransactionRequest()
+	Bank( $tr.bank.numRejections >= 3 && ($tr.bank.isBlacklisted != true) )
+then
+	modify($tr.bank) { isBlacklisted = true };
+	//System.out.println("Just set isBlacklisted to true");
+end
+
+rule "Set Bank participateNontrusted to false"
+	salience 5
+when
+	$tr : TransactionRequest()
+	Bank( $tr.bank.numTrans > 0 && ($tr.bank.numTrustedTrans/$tr.bank.numTrans * 100 < 25) && ($tr.bank.participateNontrusted != false) )
+then
+	modify($tr.bank) { participateNontrusted = false };
+	//System.out.println("Just set participateNontrusted to false");
+end
+
+rule "Set Bank participateNontrusted to true"
+	salience 5
+when
+	$tr : TransactionRequest()
+	Bank( $tr.bank.numTrans > 0 && ($tr.bank.numTrustedTrans/$tr.bank.numTrans * 100 > 25) && ($tr.bank.participateNontrusted != true) )
+then
+	modify($tr.bank) { participateNontrusted = true };
+	//System.out.println("Just set participateNontrusted to true");
+end
+
+rule "Is blacklisted"
+	activation-group "group 1"
+	salience 2
+when
+	$tr : TransactionRequest()
+	Bank( $tr.bank.isBlacklisted == true )
+then
+	$tr.conditionsMet = false;
+	$tr.rejectedRule = "Rule 1";
+	//System.out.println("Is blacklisted rule fired");
+end
+
+rule "Category is Medical"
+	activation-group "group 1"
+	salience 1
+when
+	$tr : TransactionRequest( category == "medical" )
+then
+	$tr.conditionsMet = true;
+	//System.out.println("Category is Medical rule fired");
+end
+
+rule "Category is Weapons"
+	activation-group "group 1"
+when
+	$tr : TransactionRequest( category == "weapons" )
+	(Bank( $tr.bank.nationality != "local" ) 
+		or eval( Ontology.isTrustedBoolean($tr.sender_id) != true ) 
+		or eval( Ontology.isTrustedBoolean($tr.receiver_id) != true ) )
+then
+	$tr.conditionsMet = false;
+	$tr.rejectedRule = "Rule 3";
+	//System.out.println("Category is Weapons rule fired");
+end
+
+rule "Amount > 100000"
+	activation-group "group 1"
+when
+	$tr : TransactionRequest( amount > 100000 )
+	(eval( Ontology.isTrustedBoolean($tr.sender_id) != true ) and
+	 eval( Ontology.isTrustedBoolean($tr.receiver_id) != true ) )
+then
+	$tr.conditionsMet = false;
+	$tr.rejectedRule = "Rule 4";
+	//System.out.println("Amount > 1000000 rule fired");
+end
+
+rule "Amount > 10x "
+	activation-group "group 1"
+when
+	$tr : TransactionRequest()
+	Bank( $tr.bank.numTrans > 0 && ($tr.amount > 10 * $tr.bank.averageAmount) )
+then
+	$tr.conditionsMet = false;
+	$tr.rejectedRule = "Rule 5";
+	//System.out.println("Amount > 10x rule fired");
+end
+
+rule "Trusted participants"
+	activation-group "group 1"
+when
+	$tr : TransactionRequest()
+	Bank( $tr.bank.participateNontrusted == false )
+	(eval( Ontology.isTrustedBoolean($tr.sender_id) != true ) and
+	 eval( Ontology.isTrustedBoolean($tr.receiver_id) != true ) )
+then
+	$tr.conditionsMet = false;
+	$tr.rejectedRule = "Rule 6";
+	//System.out.println("Trusted participants rule fired");
+end
+
+//rule "test"
+	//activation-group "group 1"
+//when
+	//$tr : TransactionRequest( category == "Weapons" )
+//then
+	//System.out.println("This should not print");
+//end
+	
+	
