@@ -5,7 +5,7 @@ Project 3
 Play framework server application that implements an OWL ontology. Ontology was created
 using Protoge. This application allows access to the ontology through a REST API.
 
-Ontology Schema\:
+Ontology Schema: 
 Now we shall implement our own Ontology using Protege. Here are the assertions we want to
 capture:
 1. A Person is either a Merchant or a Consumer
